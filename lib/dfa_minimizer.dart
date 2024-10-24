@@ -20,7 +20,8 @@ DFA minimizeDFA(DFA dfa) {
       for (var state in group) {
         final key = dfa.alphabet.map((symbol) {
           final nextState = dfa.transitions[state]?[symbol] ?? '';
-          return partitions.indexWhere((p) => p.contains(nextState));
+          final partitionIndex = partitions.indexWhere((p) => p.contains(nextState));
+          return partitionIndex == -1 ? 'none' : partitionIndex.toString();
         }).join(',');
 
         splitGroups.putIfAbsent(key, () => []).add(state);
@@ -33,8 +34,11 @@ DFA minimizeDFA(DFA dfa) {
   }
 
   final newStates = partitions.map((p) => p.join('_')).toList();
-  final newStartState =
-  newStates.firstWhere((s) => s.contains(dfa.startState));
+  final newStartState = newStates.firstWhere(
+        (s) => s.contains(dfa.startState),
+    orElse: () => throw Exception('Start state not found in minimized DFA'),
+  );
+
   final newFinalStates = newStates
       .where((s) => s.split('_').any((st) => dfa.finalStates.contains(st)))
       .toList();
@@ -48,8 +52,10 @@ DFA minimizeDFA(DFA dfa) {
     for (var symbol in dfa.alphabet) {
       final nextState = dfa.transitions[representative]?[symbol] ?? '';
       final targetPartition =
-      partitions.firstWhere((p) => p.contains(nextState));
-      newTransitions[newState]![symbol] = targetPartition.join('_');
+      partitions.firstWhere((p) => p.contains(nextState), orElse: () => []);
+      newTransitions[newState]![symbol] = targetPartition.isEmpty
+          ? 'none'
+          : targetPartition.join('_');
     }
   }
 
@@ -61,3 +67,4 @@ DFA minimizeDFA(DFA dfa) {
     transitions: newTransitions,
   );
 }
+
